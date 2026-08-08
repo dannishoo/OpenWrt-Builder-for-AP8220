@@ -197,13 +197,41 @@ jobs:
           git clone --depth=1 --single-branch https://github.com/gtolog/openwrt-msd_lite package/extra-packages/openwrt-msd_lite
           git clone --depth=1 --single-branch https://github.com/qosmio/packages-extra package/extra-packages/luci-mod-status-nss
 
-          # Clone only msd_lite from immortalwrt without unnecessary files
-          # git clone --depth=1 --filter=blob:none --sparse --single-branch --no-checkout https://github.com/immortalwrt/packages.git package/extra-packages/immortalwrt-packages
-          # git -C package/extra-packages/immortalwrt-packages sparse-checkout set net/msd_lite
-          # git -C package/extra-packages/immortalwrt-packages checkout
-          # Keep msd_lite inside extra-packages to maintain structure
-          # mv package/extra-packages/immortalwrt-packages/net/msd_lite package/extra-packages/
-          # rm -rf package/extra-packages/immortalwrt-packages
+          # M2 同款插件 (immortalwrt 系)
+          git clone --depth=1 --single-branch https://github.com/immortalwrt/homeproxy package/extra-packages/homeproxy
+          git clone --depth=1 --single-branch https://github.com/gdy666/luci-app-lucky package/extra-packages/lucky-src
+          git clone --depth=1 --single-branch https://github.com/sbwml/luci-app-mosdns package/extra-packages/luci-app-mosdns
+          # lucky: 仓库含 luci-app-lucky + lucky 两个目录, 直接复制到 package/
+          cp -r package/extra-packages/lucky-src/luci-app-lucky package/extra-packages/luci-app-lucky
+          cp -r package/extra-packages/lucky-src/lucky package/extra-packages/lucky
+
+          # immortalwrt-packages: 只取需要的 net 子包 (sparse clone 省流量)
+          git clone --depth=1 --filter=blob:none --sparse --single-branch https://github.com/immortalwrt/packages.git package/extra-packages/immortalwrt-packages
+          cd package/extra-packages/immortalwrt-packages
+          git sparse-checkout set net/mosdns net/ddns-go net/vlmcsd net/irqbalance utils/irqbalance
+          git checkout
+          cd ../../../
+          cp -r package/extra-packages/immortalwrt-packages/net/mosdns package/extra-packages/mosdns
+          cp -r package/extra-packages/immortalwrt-packages/net/ddns-go package/extra-packages/ddns-go
+          cp -r package/extra-packages/immortalwrt-packages/net/vlmcsd package/extra-packages/vlmcsd
+          cp -r package/extra-packages/immortalwrt-packages/utils/irqbalance package/extra-packages/irqbalance
+
+          # immortalwrt-luci: 只取需要的 app (sparse clone)
+          git clone --depth=1 --filter=blob:none --sparse --single-branch https://github.com/immortalwrt/luci.git package/extra-packages/immortalwrt-luci
+          cd package/extra-packages/immortalwrt-luci
+          git sparse-checkout set applications/luci-app-vlmcsd applications/luci-app-zerotier applications/luci-app-irqbalance applications/luci-app-autoreboot applications/luci-app-cpufreq applications/luci-app-upnp applications/luci-app-ddns-go
+          git checkout
+          cd ../../../
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-vlmcsd package/extra-packages/luci-app-vlmcsd
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-zerotier package/extra-packages/luci-app-zerotier
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-irqbalance package/extra-packages/luci-app-irqbalance
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-autoreboot package/extra-packages/luci-app-autoreboot
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-cpufreq package/extra-packages/luci-app-cpufreq
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-upnp package/extra-packages/luci-app-upnp
+          cp -r package/extra-packages/immortalwrt-luci/applications/luci-app-ddns-go package/extra-packages/luci-app-ddns-go
+
+          # 清理临时目录
+          rm -rf package/extra-packages/lucky-src package/extra-packages/immortalwrt-packages package/extra-packages/immortalwrt-luci
           
       - name: Cache ccache
         uses: actions/cache@v3
