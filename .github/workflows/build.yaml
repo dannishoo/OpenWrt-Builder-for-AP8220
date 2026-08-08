@@ -208,13 +208,15 @@ jobs:
           # immortalwrt-packages: 只取需要的 net 子包 (sparse clone 省流量)
           git clone --depth=1 --filter=blob:none --sparse --single-branch https://github.com/immortalwrt/packages.git package/extra-packages/immortalwrt-packages
           cd package/extra-packages/immortalwrt-packages
-          git sparse-checkout set net/mosdns net/ddns-go net/vlmcsd net/irqbalance utils/irqbalance
+          git sparse-checkout set net/mosdns net/ddns-go net/vlmcsd net/irqbalance net/sing-box utils/irqbalance lang/golang
           git checkout
           cd ../../../
           cp -r package/extra-packages/immortalwrt-packages/net/mosdns package/extra-packages/mosdns
           cp -r package/extra-packages/immortalwrt-packages/net/ddns-go package/extra-packages/ddns-go
           cp -r package/extra-packages/immortalwrt-packages/net/vlmcsd package/extra-packages/vlmcsd
+          cp -r package/extra-packages/immortalwrt-packages/net/sing-box package/extra-packages/sing-box
           cp -r package/extra-packages/immortalwrt-packages/utils/irqbalance package/extra-packages/irqbalance
+          cp -r package/extra-packages/immortalwrt-packages/lang/golang package/extra-packages/golang
 
           # immortalwrt-luci: 只取需要的 app (sparse clone)
           git clone --depth=1 --filter=blob:none --sparse --single-branch https://github.com/immortalwrt/luci.git package/extra-packages/immortalwrt-luci
