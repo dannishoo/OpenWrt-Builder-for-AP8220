@@ -219,6 +219,7 @@ jobs:
           # golang 必须保持 lang/golang 相对结构: sing-box/mosdns/ddns-go 的 Makefile
           # 用 include ../../lang/golang/golang-package.mk 相对引用, 复制平铺会导致
           # GO_ARCH_DEPENDS 未定义 -> Package/*/config 里 depends on 空语句 -> Kconfig syntax error
+          mkdir -p package/extra-packages/lang
           cp -r package/extra-packages/immortalwrt-packages/lang/golang package/extra-packages/lang/golang
 
           # immortalwrt-luci: 只取需要的 app (sparse clone)
