@@ -199,6 +199,11 @@ jobs:
 
           # M2 同款插件 (immortalwrt 系)
           git clone --depth=1 --single-branch https://github.com/immortalwrt/homeproxy package/extra-packages/homeproxy
+          # homeproxy 的 LUCI_DEPENDS 是 +sing-box(符号依赖), 会被 metadata 同时展开到
+          # PROVIDES sing-box 的 tiny 变体和 full 本体, 配合 sing-box 双变体互斥生成
+          # 三方递归依赖 (homeproxy -> tiny -> full <- select homeproxy), Kconfig 直接报错。
+          # 改为直接依赖 +sing-box-tiny 绕开 PROVIDES 解析环
+          sed -i 's|+sing-box \\$|+sing-box-tiny \\|' package/extra-packages/homeproxy/Makefile
           git clone --depth=1 --single-branch https://github.com/gdy666/luci-app-lucky package/extra-packages/lucky-src
           git clone --depth=1 --single-branch https://github.com/sbwml/luci-app-mosdns package/extra-packages/luci-app-mosdns
           # lucky: 仓库含 luci-app-lucky + lucky 两个目录, 直接复制到 package/
@@ -216,17 +221,14 @@ jobs:
           cp -r package/extra-packages/immortalwrt-packages/net/vlmcsd package/extra-packages/vlmcsd
           cp -r package/extra-packages/immortalwrt-packages/net/sing-box package/extra-packages/sing-box
           cp -r package/extra-packages/immortalwrt-packages/utils/irqbalance package/extra-packages/irqbalance
-          # golang 必须保持 lang/golang 相对结构: sing-box/mosdns/ddns-go 的 Makefile
-          # 用 include ../../lang/golang/golang-package.mk 相对引用, 复制平铺会导致
-          # GO_ARCH_DEPENDS 未定义 -> Package/*/config 里 depends on 空语句 -> Kconfig syntax error
-          mkdir -p package/extra-packages/lang
-          cp -r package/extra-packages/immortalwrt-packages/lang/golang package/extra-packages/lang/golang
-
-          # GO_ARCH_DEPENDS 在 qosmio 25.12-nss 的 dump 链里展开为空(metadata 机制不兼容),
-          # 导致 sing-box 的 config 块生成空 "depends on" -> Kconfig syntax error。
-          # 目标平台固定 ipq807x(aarch64), 直接写死, 摆脱对 golang-package.mk 变量展开的依赖。
-          sed -i 's|  depends on \$(subst @,,.*|  depends on aarch64|' package/extra-packages/sing-box/Makefile
-          sed -i 's|\$(GO_ARCH_DEPENDS) +ca-bundle|+ca-bundle|' package/extra-packages/mosdns/Makefile package/extra-packages/ddns-go/Makefile
+          # golang 必须复制到 package/lang/golang 而不是 extra-packages/lang/golang:
+          # sing-box/mosdns/ddns-go 的 Makefile 用 include ../../lang/golang/golang-package.mk,
+          # 从 package/extra-packages/<pkg>/ 出发 ../.. 指向 package/, 所以只有
+          # package/lang/golang/golang-package.mk 能被 include 到。
+          # 复制错位置 -> GO_ARCH_DEPENDS 未定义 -> Package/*/config 里 depends on 空语句
+          # -> Kconfig "invalid statement + syntax error"
+          mkdir -p package/lang
+          cp -r package/extra-packages/immortalwrt-packages/lang/golang package/lang/golang
 
           # immortalwrt-luci: 只取需要的 app (sparse clone)
           git clone --depth=1 --filter=blob:none --sparse --single-branch https://github.com/immortalwrt/luci.git package/extra-packages/immortalwrt-luci
