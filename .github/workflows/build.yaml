@@ -307,7 +307,7 @@ jobs:
       - name: Configure firmware image
         run: |
           mv builder_repo/${{ env.CONFIG_FILE }} .config
-          make defconfig -j$(nproc)
+          make defconfig -j$(nproc) || { echo "=== KCONFIG ERROR CONTEXT ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; awk 'NR>=122430 && NR<=122510' tmp/.config-package.in; exit 1; }
       
       - name: Include custom files
         run: |
