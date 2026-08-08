@@ -222,6 +222,12 @@ jobs:
           mkdir -p package/extra-packages/lang
           cp -r package/extra-packages/immortalwrt-packages/lang/golang package/extra-packages/lang/golang
 
+          # GO_ARCH_DEPENDS 在 qosmio 25.12-nss 的 dump 链里展开为空(metadata 机制不兼容),
+          # 导致 sing-box 的 config 块生成空 "depends on" -> Kconfig syntax error。
+          # 目标平台固定 ipq807x(aarch64), 直接写死, 摆脱对 golang-package.mk 变量展开的依赖。
+          sed -i 's|  depends on \$(subst @,,.*|  depends on aarch64|' package/extra-packages/sing-box/Makefile
+          sed -i 's|\$(GO_ARCH_DEPENDS) +ca-bundle|+ca-bundle|' package/extra-packages/mosdns/Makefile package/extra-packages/ddns-go/Makefile
+
           # immortalwrt-luci: 只取需要的 app (sparse clone)
           git clone --depth=1 --filter=blob:none --sparse --single-branch https://github.com/immortalwrt/luci.git package/extra-packages/immortalwrt-luci
           cd package/extra-packages/immortalwrt-luci
