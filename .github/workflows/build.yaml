@@ -334,7 +334,7 @@ jobs:
         run: |
           # 验证门: 缺的包必须 =y, 剔除的包必须不在。defconfig 后立刻查, 防静默出半成品固件。
           missing=""
-          for pkg in luci-app-vlmcsd luci-app-zerotier luci-app-irqbalance luci-app-autoreboot luci-app-cpufreq luci-app-upnp luci-app-ddns-go miniupnpd luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-homeproxy-zh-cn luci-i18n-vlmcsd-zh-cn luci-i18n-ddns-go-zh-cn luci-i18n-zerotier-zh-cn luci-i18n-upnp-zh-cn luci-i18n-irqbalance-zh-cn luci-i18n-autoreboot-zh-cn luci-i18n-cpufreq-zh-cn; do
+          for pkg in luci-app-vlmcsd luci-app-zerotier luci-app-irqbalance luci-app-autoreboot luci-app-cpufreq luci-app-upnp luci-app-ddns-go miniupnpd-nftables luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-homeproxy-zh-cn luci-i18n-vlmcsd-zh-cn luci-i18n-ddns-go-zh-cn luci-i18n-zerotier-zh-cn luci-i18n-upnp-zh-cn luci-i18n-irqbalance-zh-cn luci-i18n-autoreboot-zh-cn luci-i18n-cpufreq-zh-cn; do
             grep -q "CONFIG_PACKAGE_${pkg}=y" .config || missing="$missing $pkg"
           done
           extra=""
@@ -344,21 +344,23 @@ jobs:
           if [ -n "$missing" ] || [ -n "$extra" ]; then
             [ -z "$missing" ] || echo "MISSING PACKAGES:$missing"
             [ -z "$extra" ] || echo "STILL ENABLED:$extra"
-            echo "=== DIAG: config-package.in 中 luci-i18n 符号 ==="
-            grep -n 'luci-i18n' tmp/.config-package.in 2>/dev/null | head -12
-            echo "=== DIAG: config-package.in 中 LUCI_LANG 符号 ==="
-            grep -nE 'LUCI_LANG|Translations' tmp/.config-package.in 2>/dev/null | head -8
-            echo "=== DIAG: config-package.in 中 miniupnpd 符号 ==="
-            grep -n 'miniupnpd' tmp/.config-package.in 2>/dev/null | head -6
-            echo "=== DIAG: tmp/info 包信息文件里有没有 i18n ==="
-            ls tmp/info/ 2>/dev/null | head -5
-            grep -l 'luci-i18n' tmp/info/* 2>/dev/null | head -5
-            echo "=== DIAG: .config 中 luci-base 与 luci-app-homeproxy ==="
-            grep -nE 'CONFIG_PACKAGE_(luci-base|luci-app-homeproxy|luci-app-vlmcsd)=' .config | head -6
-            echo "=== DIAG: feeds/luci luci-base po 目录 ==="
-            ls feeds/luci/modules/luci-base/po/ 2>&1 | head -6
-            echo "=== DIAG: extra-packages 7 个 app 的 include 现状 ==="
-            grep -h '^include' package/extra-packages/luci-app-vlmcsd/Makefile package/extra-packages/luci-app-upnp/Makefile 2>&1
+            echo "=== DIAG: 逐包查符号存在性与完整 Kconfig 块 ==="
+            for pkg in $missing; do
+              if grep -q "config PACKAGE_$pkg" tmp/.config-package.in 2>/dev/null; then
+                echo "--- $pkg: 符号存在, 但 .config 未选中 ---"
+                grep -A9 "config PACKAGE_$pkg" tmp/.config-package.in 2>/dev/null | head -11
+              else
+                echo "--- $pkg: 符号不存在于 config-package.in ---"
+              fi
+            done
+            echo "=== DIAG: 对照组 luci-i18n-acl-ar 完整块(能生成的) ==="
+            grep -A9 "config PACKAGE_luci-i18n-acl-ar" tmp/.config-package.in 2>/dev/null | head -11
+            echo "=== DIAG: .config 中 LUCI_LANG 与 i18n 现状 ==="
+            grep -nE 'CONFIG_LUCI_LANG|CONFIG_PACKAGE_luci-i18n' .config 2>/dev/null | head -15
+            echo "=== DIAG: config-package.in 中 i18n 符号总数 ==="
+            grep -c "config PACKAGE_luci-i18n" tmp/.config-package.in 2>/dev/null
+            echo "=== DIAG: DEFAULT_luci-i18n-base-zh-cn ==="
+            grep -B1 -A3 "DEFAULT_luci-i18n-base-zh-cn" tmp/.config-package.in 2>/dev/null | head -10
             exit 1
           fi
           echo "VERIFY OK: required packages all present, removed packages all gone"
