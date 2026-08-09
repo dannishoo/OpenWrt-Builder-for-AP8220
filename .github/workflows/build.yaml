@@ -214,6 +214,8 @@ jobs:
           # 重复定义(谁赢随机, 08-09 实测 sbwml 5.3.3 赢了 -> init 脚本和 app 装包冲突)。
           # 只取 app 子目录, 守护进程统一用 immortalwrt/packages 的 net/mosdns。
           cp -r package/extra-packages/mosdns-src/luci-app-mosdns package/extra-packages/luci-app-mosdns
+          # app 依赖 v2dat (geoip 转换工具, 仓库第三个子目录) -> 也要复制, 否则缺依赖
+          cp -r package/extra-packages/mosdns-src/v2dat package/extra-packages/v2dat
           rm -rf package/extra-packages/mosdns-src
           # app 自带的 init 脚本和 mosdns 守护包重复 -> 删掉 app 的, 守护包提供
           rm -f package/extra-packages/luci-app-mosdns/root/etc/init.d/mosdns
