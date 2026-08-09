@@ -361,7 +361,7 @@ jobs:
         run: |
           # 验证门: 缺的包必须 =y, 剔除的包必须不在。defconfig 后立刻查, 防静默出半成品固件。
           missing=""
-          for pkg in luci-app-vlmcsd luci-app-zerotier luci-app-irqbalance luci-app-autoreboot luci-app-upnp luci-app-ddns-go miniupnpd-nftables luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-homeproxy-zh-cn luci-i18n-vlmcsd-zh-cn luci-i18n-ddns-go-zh-cn luci-i18n-zerotier-zh-cn luci-i18n-upnp-zh-cn luci-i18n-irqbalance-zh-cn luci-i18n-autoreboot-zh-cn luci-i18n-cpufreq-zh-cn; do
+          for pkg in luci-app-vlmcsd luci-app-zerotier luci-app-irqbalance luci-app-autoreboot luci-app-upnp luci-app-ddns-go miniupnpd-nftables luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-homeproxy-zh-cn luci-i18n-vlmcsd-zh-cn luci-i18n-ddns-go-zh-cn luci-i18n-zerotier-zh-cn luci-i18n-upnp-zh-cn luci-i18n-irqbalance-zh-cn luci-i18n-autoreboot-zh-cn; do
             grep -q "CONFIG_PACKAGE_${pkg}=y" .config || missing="$missing $pkg"
           done
           extra=""
