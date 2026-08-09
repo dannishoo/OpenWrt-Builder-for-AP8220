@@ -342,14 +342,21 @@ jobs:
           # 强制重建 metadata 扫描缓存: extra-packages 的 .packageinfo 不感知 feeds/luci/luci.mk 变更,
           # 不清的话 i18n 符号沿用 patch 前的旧 DEFAULT -> 8个翻译包缺失
           rm -rf tmp/info
-          make scripts/config/conf prepare-tmpinfo
+          make scripts/config/conf prepare-tmpinfo > /tmp/meta.log 2>&1 || { echo "=== METADATA FAILED ==="; tail -20 /tmp/meta.log; exit 1; }
+          # 缺依赖预检: 只盯 extra-packages 的【运行时】依赖警告
+          # (2026-08-09 实测: luci-app-cpufreq 依赖不存在的 cpufreq 包, make world 1小时后 image 装包才炸。
+          #  注意 feeds 早期扫描有误报如 irqbalance->luci-base, 全量重扫后这些依赖都在, 只留真缺的)
+          if grep -E "package/extra-packages/.*has a dependency on" /tmp/meta.log; then
+            echo "!!! MISSING DEPENDENCY PACKAGES DETECTED !!!"
+            exit 1
+          fi
           ./scripts/config/conf --olddefconfig Config.in || { echo "=== KCONFIG ERROR ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; exit 1; }
 
       - name: Verify required packages in .config
         run: |
           # 验证门: 缺的包必须 =y, 剔除的包必须不在。defconfig 后立刻查, 防静默出半成品固件。
           missing=""
-          for pkg in luci-app-vlmcsd luci-app-zerotier luci-app-irqbalance luci-app-autoreboot luci-app-cpufreq luci-app-upnp luci-app-ddns-go miniupnpd-nftables luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-homeproxy-zh-cn luci-i18n-vlmcsd-zh-cn luci-i18n-ddns-go-zh-cn luci-i18n-zerotier-zh-cn luci-i18n-upnp-zh-cn luci-i18n-irqbalance-zh-cn luci-i18n-autoreboot-zh-cn luci-i18n-cpufreq-zh-cn; do
+          for pkg in luci-app-vlmcsd luci-app-zerotier luci-app-irqbalance luci-app-autoreboot luci-app-upnp luci-app-ddns-go miniupnpd-nftables luci-i18n-base-zh-cn luci-i18n-firewall-zh-cn luci-i18n-package-manager-zh-cn luci-i18n-homeproxy-zh-cn luci-i18n-vlmcsd-zh-cn luci-i18n-ddns-go-zh-cn luci-i18n-zerotier-zh-cn luci-i18n-upnp-zh-cn luci-i18n-irqbalance-zh-cn luci-i18n-autoreboot-zh-cn luci-i18n-cpufreq-zh-cn; do
             grep -q "CONFIG_PACKAGE_${pkg}=y" .config || missing="$missing $pkg"
           done
           extra=""
