@@ -330,9 +330,9 @@ jobs:
           # 只认 DEFAULT 表达式。luci-i18n-* 全隐藏 -> defconfig 里 =y 被静默丢弃 -> 界面英文。
           # 修法: 把 luci.mk 的 LuciTranslation DEFAULT 表达式加上 ||PACKAGE_$(PKG_NAME),
           # 选中哪个 luci app, 它的 i18n 包才默认 =y; 未选 app 的翻译包不会启用(避免 image 缺依赖)。
-          if [ -f feeds/luci/luci.mk ]; then
-            sed -i 's|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL&&m)|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL\&\&m)\|\|PACKAGE_$(PKG_NAME)|' feeds/luci/luci.mk
-            grep -m1 'DEFAULT:=LUCI_LANG' feeds/luci/luci.mk || true
+          if [ -f "${{ github.workspace }}/feeds/luci/luci.mk" ]; then
+            sed -i 's|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL&&m)|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL\&\&m)\|\|PACKAGE_$(PKG_NAME)|' "${{ github.workspace }}/feeds/luci/luci.mk"
+            grep -m1 'DEFAULT:=LUCI_LANG' "${{ github.workspace }}/feeds/luci/luci.mk" || true
           fi
   
       - name: Configure firmware image
