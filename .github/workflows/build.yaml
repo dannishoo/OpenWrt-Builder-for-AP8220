@@ -295,6 +295,13 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+          # luci.mk DEFAULT 补丁必须赶在任何 make/scan 之前打 (i18n 隐藏符号只认 DEFAULT 表达式,
+          # 不加 ||PACKAGE_$(PKG_NAME) 的话 .config 显式 =y 会被 Kconfig 丢弃 -> 界面英文)
+          if [ -f feeds/luci/luci.mk ]; then
+            sed -i 's|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL&&m)|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL\&\&m)\|\|PACKAGE_$(PKG_NAME)|' feeds/luci/luci.mk
+            grep -m1 'DEFAULT:=LUCI_LANG' feeds/luci/luci.mk || true
+          fi
+
       - name: Add custom patches
         run: |
           # Apply OpenWrt patches
@@ -325,16 +332,6 @@ jobs:
             git status
           fi
   
-          # 根因修复(2026-08-09 实测): 这版 Kconfig 对【无提示符】(HIDDEN:=1)符号
-          # 忽略 .config 显式值 (sym_calc_value: visible!=no 才用用户值, 隐藏符号 visible=no),
-          # 只认 DEFAULT 表达式。luci-i18n-* 全隐藏 -> defconfig 里 =y 被静默丢弃 -> 界面英文。
-          # 修法: 把 luci.mk 的 LuciTranslation DEFAULT 表达式加上 ||PACKAGE_$(PKG_NAME),
-          # 选中哪个 luci app, 它的 i18n 包才默认 =y; 未选 app 的翻译包不会启用(避免 image 缺依赖)。
-          if [ -f "${{ github.workspace }}/feeds/luci/luci.mk" ]; then
-            sed -i 's|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL&&m)|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL\&\&m)\|\|PACKAGE_$(PKG_NAME)|' "${{ github.workspace }}/feeds/luci/luci.mk"
-            grep -m1 'DEFAULT:=LUCI_LANG' "${{ github.workspace }}/feeds/luci/luci.mk" || true
-          fi
-  
       - name: Configure firmware image
         run: |
           mv builder_repo/${{ env.CONFIG_FILE }} .config
@@ -342,6 +339,9 @@ jobs:
           # 该模式会丢弃【无提示符】(HIDDEN:=1)符号的显式 =y, 按 Kconfig 默认 n 处理。
           # luci-i18n-* 全是 HIDDEN:=1 -> defconfig 后被强制 "is not set", 界面英文。
           # 改用 conf --olddefconfig: 尊重 .config 里所有显式值(含隐藏符号), 非交互补默认。
+          # 强制重建 metadata 扫描缓存: extra-packages 的 .packageinfo 不感知 feeds/luci/luci.mk 变更,
+          # 不清的话 i18n 符号沿用 patch 前的旧 DEFAULT -> 8个翻译包缺失
+          rm -rf tmp/info
           make scripts/config/conf prepare-tmpinfo
           ./scripts/config/conf --olddefconfig Config.in || { echo "=== KCONFIG ERROR ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; exit 1; }
 
