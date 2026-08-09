@@ -324,7 +324,17 @@ jobs:
             echo "Changed files after Luci patch application:"
             git status
           fi
-      
+  
+          # 根因修复(2026-08-09 实测): 这版 Kconfig 对【无提示符】(HIDDEN:=1)符号
+          # 忽略 .config 显式值 (sym_calc_value: visible!=no 才用用户值, 隐藏符号 visible=no),
+          # 只认 DEFAULT 表达式。luci-i18n-* 全隐藏 -> defconfig 里 =y 被静默丢弃 -> 界面英文。
+          # 修法: 把 luci.mk 的 LuciTranslation DEFAULT 表达式加上 ||PACKAGE_$(PKG_NAME),
+          # 选中哪个 luci app, 它的 i18n 包才默认 =y; 未选 app 的翻译包不会启用(避免 image 缺依赖)。
+          if [ -f feeds/luci/luci.mk ]; then
+            sed -i 's|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL&&m)|DEFAULT:=LUCI_LANG_\$(2)\|\|(ALL\&\&m)\|\|PACKAGE_$(PKG_NAME)|' feeds/luci/luci.mk
+            grep -m1 'DEFAULT:=LUCI_LANG' feeds/luci/luci.mk || true
+          fi
+  
       - name: Configure firmware image
         run: |
           mv builder_repo/${{ env.CONFIG_FILE }} .config
