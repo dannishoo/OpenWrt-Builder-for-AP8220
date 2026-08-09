@@ -328,7 +328,8 @@ jobs:
       - name: Configure firmware image
         run: |
           mv builder_repo/${{ env.CONFIG_FILE }} .config
-          make defconfig -j$(nproc) || { echo "=== KCONFIG ERROR CONTEXT ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; awk 'NR>=122430 && NR<=122510' tmp/.config-package.in; exit 1; }
+          # 串行 defconfig: -j 下 metadata 生成与 Kconfig 解析有竞态, 导致部分符号(如 luci-i18n-*)丢失
+          make defconfig || { echo "=== KCONFIG ERROR CONTEXT ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; awk 'NR>=122430 && NR<=122510' tmp/.config-package.in; exit 1; }
 
       - name: Verify required packages in .config
         run: |
@@ -355,8 +356,11 @@ jobs:
             done
             echo "=== DIAG: 对照组 luci-i18n-acl-ar 完整块(能生成的) ==="
             grep -A9 "config PACKAGE_luci-i18n-acl-ar" tmp/.config-package.in 2>/dev/null | head -11
-            echo "=== DIAG: .config 中 LUCI_LANG 与 i18n 现状 ==="
-            grep -nE 'CONFIG_LUCI_LANG|CONFIG_PACKAGE_luci-i18n' .config 2>/dev/null | head -15
+            echo "=== DIAG: .config 中 luci-i18n 精确状态(=y / =n / is not set / 不存在) ==="
+            grep -n 'CONFIG_PACKAGE_luci-i18n' .config 2>/dev/null | head -8
+            echo "--- .config 中 luci-i18n 条目总数: $(grep -c 'CONFIG_PACKAGE_luci-i18n' .config 2>/dev/null) ---"
+            echo "=== DIAG: 对照组 .config 中 luci-app-vlmcsd 条目 ==="
+            grep -n 'CONFIG_PACKAGE_luci-app-vlmcsd' .config 2>/dev/null
             echo "=== DIAG: config-package.in 中 i18n 符号总数 ==="
             grep -c "config PACKAGE_luci-i18n" tmp/.config-package.in 2>/dev/null
             echo "=== DIAG: DEFAULT_luci-i18n-base-zh-cn ==="
