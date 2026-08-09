@@ -370,6 +370,15 @@ jobs:
             done
             echo "=== DIAG: 对照组 luci-i18n-acl-ar 完整块(能生成的) ==="
             grep -A9 "config PACKAGE_luci-i18n-acl-ar" tmp/.config-package.in 2>/dev/null | head -11
+            echo "=== DIAG: 已选中的 base-zh-cn 完整块(对照组) ==="
+            grep -A9 "config PACKAGE_luci-i18n-base-zh-cn" tmp/.config-package.in 2>/dev/null | head -11
+            echo "=== DIAG: 合成符号 DEFAULT_xxx 块 ==="
+            for s in DEFAULT_luci-i18n-base-zh-cn DEFAULT_luci-i18n-vlmcsd-zh-cn DEFAULT_luci-i18n-homeproxy-zh-cn; do
+              echo "--- $s ---"
+              grep -A3 "config $s" tmp/.config-package.in 2>/dev/null | head -5
+            done
+            echo "=== DIAG: runner 上重新 DUMP extra 包, 看 Default: 原始行 ==="
+            (cd package/extra-packages/luci-app-vlmcsd && make DUMP=1 2>/dev/null | grep -a -A1 'Package: luci-i18n-vlmcsd-zh-cn' | head -4; echo "--- luci.mk 当前 DEFAULT 行 ---"; grep -m1 'DEFAULT:=LUCI_LANG' "${{ github.workspace }}/feeds/luci/luci.mk")
             echo "=== DIAG: .config 中 luci-i18n 精确状态(=y / =n / is not set / 不存在) ==="
             grep -n 'CONFIG_PACKAGE_luci-i18n' .config 2>/dev/null | head -8
             echo "--- .config 中 luci-i18n 条目总数: $(grep -c 'CONFIG_PACKAGE_luci-i18n' .config 2>/dev/null) ---"
