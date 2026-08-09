@@ -208,7 +208,15 @@ jobs:
           # 改为直接依赖 +sing-box-tiny 绕开 PROVIDES 解析环
           sed -i 's|+sing-box \\$|+sing-box-tiny \\|' package/extra-packages/homeproxy/Makefile
           git clone --depth=1 --single-branch https://github.com/gdy666/luci-app-lucky package/extra-packages/lucky-src
-          git clone --depth=1 --single-branch https://github.com/sbwml/luci-app-mosdns package/extra-packages/luci-app-mosdns
+          git clone --depth=1 --single-branch https://github.com/sbwml/luci-app-mosdns package/extra-packages/mosdns-src
+          # mosdns 仓库是多包结构(luci-app-mosdns/ + mosdns/ + v2dat/):
+          # 直接 clone 会让 sbwml 的 mosdns 守护包和 immortalwrt sparse clone 的 net/mosdns
+          # 重复定义(谁赢随机, 08-09 实测 sbwml 5.3.3 赢了 -> init 脚本和 app 装包冲突)。
+          # 只取 app 子目录, 守护进程统一用 immortalwrt/packages 的 net/mosdns。
+          cp -r package/extra-packages/mosdns-src/luci-app-mosdns package/extra-packages/luci-app-mosdns
+          rm -rf package/extra-packages/mosdns-src
+          # app 自带的 init 脚本和 mosdns 守护包重复 -> 删掉 app 的, 守护包提供
+          rm -f package/extra-packages/luci-app-mosdns/root/etc/init.d/mosdns
           # lucky: 仓库含 luci-app-lucky + lucky 两个目录, 直接复制到 package/
           cp -r package/extra-packages/lucky-src/luci-app-lucky package/extra-packages/luci-app-lucky
           cp -r package/extra-packages/lucky-src/lucky package/extra-packages/lucky
