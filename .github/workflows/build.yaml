@@ -343,13 +343,18 @@ jobs:
           # 不清的话 i18n 符号沿用 patch 前的旧 DEFAULT -> 8个翻译包缺失
           rm -rf tmp/info
           make scripts/config/conf prepare-tmpinfo > /tmp/meta.log 2>&1 || { echo "=== METADATA FAILED ==="; tail -20 /tmp/meta.log; exit 1; }
-          # 缺依赖预检: 只盯 extra-packages 的【运行时】依赖警告
+          # 缺依赖预检: 只盯 extra-packages 的【运行时】依赖警告, 且仅当该包在 .config 里 =y 时才算数
           # (2026-08-09 实测: luci-app-cpufreq 依赖不存在的 cpufreq 包, make world 1小时后 image 装包才炸。
-          #  注意 feeds 早期扫描有误报如 irqbalance->luci-base, 全量重扫后这些依赖都在, 只留真缺的)
-          if grep -E "package/extra-packages/.*has a dependency on" /tmp/meta.log; then
-            echo "!!! MISSING DEPENDENCY PACKAGES DETECTED !!!"
-            exit 1
-          fi
+          #  =n 的包(如已移除的 cpufreq)警告无害, 必须过滤; feeds 早期扫描误报在重扫后消失)
+          bad=""
+          while read -r line; do
+            pkg=$(echo "$line" | sed -n 's|.*package/extra-packages/\([^/]*\)/Makefile.*|\1|p')
+            if grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
+              echo "SELECTED package has missing dep: $line"
+              bad=1
+            fi
+          done < <(grep -E "package/extra-packages/.*has a dependency on" /tmp/meta.log || true)
+          [ -z "$bad" ] || { echo "!!! MISSING DEPENDENCY PACKAGES DETECTED !!!"; exit 1; }
           ./scripts/config/conf --olddefconfig Config.in || { echo "=== KCONFIG ERROR ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; exit 1; }
 
       - name: Verify required packages in .config
