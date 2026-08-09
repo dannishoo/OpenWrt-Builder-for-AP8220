@@ -328,8 +328,25 @@ jobs:
       - name: Configure firmware image
         run: |
           mv builder_repo/${{ env.CONFIG_FILE }} .config
-          # 串行 defconfig: -j 下 metadata 生成与 Kconfig 解析有竞态, 导致部分符号(如 luci-i18n-*)丢失
+          # 串行 defconfig: -j 下 metadata 生成与 Kconfig 解析有竞态, 防丢符号
           make defconfig || { echo "=== KCONFIG ERROR CONTEXT ==="; grep -n "syntax error\|invalid statement" tmp/.config-package.in; awk 'NR>=122430 && NR<=122510' tmp/.config-package.in; exit 1; }
+          # 根因(2026-08-09 实测): OpenWrt 的 make defconfig = conf --defconfig=.config,
+          # 该模式会丢弃【无提示符】(HIDDEN:=1)符号的显式 =y, 按 Kconfig 默认 n 处理。
+          # luci-i18n-* 全是 HIDDEN:=1 -> defconfig 后被强制 "is not set", 界面英文。
+          # 用 scripts/config 直接把隐藏包写回 .config (构建直接消费 .config, 不再跑 conf)。
+          # 注意: 以后 build.config 里新增 HIDDEN 包, 必须同步加到这里。
+          ./scripts/config --file .config \
+            --enable PACKAGE_luci-i18n-base-zh-cn \
+            --enable PACKAGE_luci-i18n-firewall-zh-cn \
+            --enable PACKAGE_luci-i18n-package-manager-zh-cn \
+            --enable PACKAGE_luci-i18n-homeproxy-zh-cn \
+            --enable PACKAGE_luci-i18n-vlmcsd-zh-cn \
+            --enable PACKAGE_luci-i18n-ddns-go-zh-cn \
+            --enable PACKAGE_luci-i18n-zerotier-zh-cn \
+            --enable PACKAGE_luci-i18n-upnp-zh-cn \
+            --enable PACKAGE_luci-i18n-irqbalance-zh-cn \
+            --enable PACKAGE_luci-i18n-autoreboot-zh-cn \
+            --enable PACKAGE_luci-i18n-cpufreq-zh-cn
 
       - name: Verify required packages in .config
         run: |
